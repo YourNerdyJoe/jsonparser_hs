@@ -4,6 +4,7 @@ where
 import Control.Applicative
 import Data.Char
 import Data.Maybe
+import Numeric
 
 data JsonValue = JsonNull
   | JsonBool Bool
@@ -198,14 +199,43 @@ parseTNumber input =
     if null tok then Nothing
     else Just (input', TNumber tok)
 
---TODO: escapes
-parseStringLit :: String -> String -> Maybe (String, String)
-parseStringLit [] _ = Nothing
-parseStringLit (c:cs) tok
-  | c == '"' = Just (cs, tok)
-  | otherwise = parseStringLit cs $ tok++[c]
+parseStringLit :: String -> Maybe (String, String)
+parseStringLit [] = Nothing
+parseStringLit (c:cs)
+  | c == '"' = Just (cs, [])
+  | c == '\\' = parseEscapedStr cs
+  | otherwise = parseStringLit cs >>= \(cs', strLit) -> Just (cs', c:strLit)
+
+escapeCharMap :: [(Char, Char)]
+escapeCharMap = [
+  ('"', '"'),
+  ('\\', '\\'),
+  ('/', '/'),
+  ('b', '\b'),
+  ('f', '\f'),
+  ('n', '\n'),
+  ('r', '\r'),
+  ('t', '\t')]
+
+parseEscapedStr :: String -> Maybe (String, String)
+parseEscapedStr [] = Nothing
+parseEscapedStr (c:cs)
+  | c == 'u' = parseHex cs >>= \(cs', hexVal) -> prependParseStrLit cs' (chr hexVal)
+  | otherwise = lookup c escapeCharMap >>= prependParseStrLit cs
+  where
+    prependParseStrLit cs' c' = parseStringLit cs' >>= \(cs'', strLit) -> Just (cs'', c':strLit)
+
+parseHex :: String -> Maybe (String, Int)
+parseHex input = parseHexDigits input 4 0
+  where
+    parseHexDigits :: String -> Int -> Int -> Maybe (String, Int)
+    parseHexDigits input 0 acc = Just (input, acc)
+    parseHexDigits [] _ _ = Nothing
+    parseHexDigits (digit:digits) remaining acc
+      | isHexDigit digit = parseHexDigits digits (remaining - 1) (acc*16+digitToInt digit)
+      | otherwise = Nothing
 
 parseTString :: TokenParser
 parseTString (c:cs)
-  | c == '"' = parseStringLit cs [] >>= \(input', tok) -> Just (input', TString tok)
+  | c == '"' = parseStringLit cs >>= \(input', tok) -> Just (input', TString tok)
   | otherwise = Nothing
