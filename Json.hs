@@ -139,22 +139,6 @@ parseTWhitespace (c:cs)
       Just v -> Just v
   | otherwise = Nothing
 
-parseOneChar :: String -> String -> Maybe String
-parseOneChar [] _ = Nothing
-parseOneChar _ [] = Nothing
-parseOneChar cs input =
-  if head input `elem` cs then Just $ tail input
-  else Nothing
-
-parseChars :: String -> String -> Maybe String
-parseChars [] input = Just input
-parseChars _ [] = Nothing
-parseChars (c:cs) input =
-  if c == head input then
-    parseChars cs $ tail input
-  else
-    Nothing
-
 wordChars :: [Char]
 wordChars = ['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ ['_']
 
