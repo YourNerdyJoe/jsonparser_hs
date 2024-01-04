@@ -19,7 +19,7 @@ data JsonToken = TWhitespace
   | TNull
   | TTrue
   | TFalse
-  | TNumber String
+  | TNumber Double
   | TString String
   | TOpenObject
   | TCloseObject
@@ -63,7 +63,7 @@ parseBasicJsonValue (tok:toks) = case tok of
   TNull -> Just (toks, JsonNull)
   TTrue -> Just (toks, JsonBool True)
   TFalse -> Just (toks, JsonBool False)
-  TNumber numStr -> Just (toks, JsonNumber $ read numStr)
+  TNumber num -> Just (toks, JsonNumber num)
   _ -> Nothing
 
 parseJsonValueString :: JsonParser
@@ -192,12 +192,16 @@ parseNumberToken (c:cs) tok
   | isSpace c || isJust (parseSymbolToken (c:cs)) = (c:cs, tok)
   | otherwise = ([], [])
 
---TODO: floats
+isNumberTokenSeparator :: Char -> Bool
+isNumberTokenSeparator c = isSpace c || isJust (parseSymbolToken [c])
+
 parseTNumber :: TokenParser
 parseTNumber input =
-  let (input', tok) = parseNumberToken input [] in
-    if null tok then Nothing
-    else Just (input', TNumber tok)
+  let parsedNum = readFloat input in
+    if null parsedNum then Nothing
+    else let (num, input') = head parsedNum in
+      if null input' || isNumberTokenSeparator (head input') then Just (input', TNumber num)
+      else Nothing
 
 parseStringLit :: String -> Maybe (String, String)
 parseStringLit [] = Nothing
