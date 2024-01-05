@@ -16,10 +16,10 @@ showGameName (JsonObject game) =
     _ -> Nothing
 showGameName _ = Nothing
 
-main :: IO ()
-main = do
+printPokemon :: String -> IO ()
+printPokemon pkmn = do
   man <- newManager tlsManagerSettings
-  request <- parseRequest "https://pokeapi.co/api/v2/pokemon/1"
+  request <- parseRequest $ "https://pokeapi.co/api/v2/pokemon/" ++ pkmn
   response <- httpLbs request man
   let obj = parseJson $ unpack $ responseBody response
   case fromJust obj of
@@ -33,6 +33,17 @@ main = do
           putStrLn $ (++) "Games: " $ intercalate ", " gameNames
         _ -> putStrLn "No games???"
     _ -> putStrLn "No object"
-  --jsonStr <- readFile "example.json"
-  --print $ parseJson jsonStr
+
+main :: IO ()
+main = do
+  printPokemon "1"
+  jsonStr <- readFile "example.json"
+  let Just jsonObj = parseJson jsonStr
+  print jsonObj
+  let JsonObject obj = jsonObj
+  let Just (JsonString escStr) = lookup "esc" obj
+  putStrLn escStr
+  let serStr = serializeJson jsonObj
+  putStrLn serStr
+  print $ parseJson serStr
   return ()

@@ -1,10 +1,12 @@
 module Json
---(JsonValue(..), parseJson)
+(JsonValue(..), parseJson, serializeJson)
 where
-import Control.Applicative
-import Data.Char
-import Data.Maybe
-import Numeric
+import Control.Applicative (Alternative((<|>)))
+import Data.Char (digitToInt, chr, isDigit, isHexDigit, isSpace)
+import Data.Maybe (isJust)
+import Numeric (readFloat)
+import Data.List (intercalate)
+import Data.Tuple (swap)
 
 data JsonValue = JsonNull
   | JsonBool Bool
@@ -13,7 +15,6 @@ data JsonValue = JsonNull
   | JsonArray [JsonValue]
   | JsonObject [(String, JsonValue)]
   deriving (Eq, Show)
-
 
 data JsonToken = TWhitespace
   | TNull
@@ -28,6 +29,26 @@ data JsonToken = TWhitespace
   | TColon
   | TComma
   deriving (Eq, Show)
+
+--TODO: \uXXXX
+serializeJson :: JsonValue -> String
+serializeJson JsonNull = "null"
+serializeJson (JsonBool True) = "true"
+serializeJson (JsonBool False) = "false"
+serializeJson (JsonNumber num) = show num
+serializeJson (JsonString str) = "\""++serializeChars str++"\""
+  where
+    serializeChars [] = []
+    serializeChars (c:cs) = escapeChar c ++ serializeChars cs
+    escapeChar c = case lookup c $ map swap escapeCharMap of
+      Just ec -> '\\' : [ec]
+      Nothing -> [c]
+serializeJson (JsonArray arr) =
+  let sarr = map serializeJson arr
+  in "[" ++ intercalate "," sarr ++ "]"
+serializeJson (JsonObject obj) =
+  let sobj = map (\(k, v) -> '"' : k ++ "\":" ++ serializeJson v) obj
+  in "{" ++ intercalate "," sobj ++ "}"
 
 parseJson :: String -> Maybe JsonValue
 parseJson jsonStr =

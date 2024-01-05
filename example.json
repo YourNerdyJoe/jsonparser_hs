@@ -1,1 +1,1 @@
-{"name":"John", "age":30, "car":null}
+{"name":"John", "age":30, "car":null, "pkmn":[1, "ditto", 150], "esc":"hi\nhello\u0020"}
